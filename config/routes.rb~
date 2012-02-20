@@ -1,4 +1,6 @@
 Puyenk::Application.routes.draw do
+  get "sessions/new"
+
   get "users/new"
 
   get "pages/home"
@@ -13,6 +15,8 @@ Puyenk::Application.routes.draw do
   get "pages/about"
 
   get "pages/signup"
+  resources :users
+   match '/signup', :to => 'users#new'
 
 
 
