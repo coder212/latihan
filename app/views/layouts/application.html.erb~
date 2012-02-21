@@ -18,16 +18,12 @@
 <%= image_tag("logo.png", :alt => "Sample App", :class => "round") %>
 <nav class="round">
 <ul>
-<li><%= link_to "Home", 'home' %></li>
-<li><%= link_to "Help", 'help' %></li>
-<li><%= link_to "Sign in", 'sign_in' %></li>
+<li><%= link_to "Home", 'root-path' %></li>
+<li><%= link_to "Help", 'help_path' %></li>
+<li><%= link_to "Sign in", '#' %></li>
 </ul>
 </nav>
 </header>
-<section class="round">
-<%= yield %>
-</section>
-<%= render 'layouts/header' %>
 <section class="round">
 <% flash.each do |key, value| %>
 <div class="flash <%= key %>"><%= value %></div>
@@ -37,8 +33,8 @@
 <footer>
 <nav class="round">
 <ul>
-<li><%= link_to "About", 'about' %></li>
-<li><%= link_to "Contact", 'contact' %></li>
+<li><%= link_to "About", about_path %></li>
+<li><%= link_to "Contact", contact_path %></li>
 <li><a href="http://news.railstutorial.org/">News</a></li>
 <li><a href="http://www.railstutorial.org/">Rails Tutorial</a></li>
 </ul>

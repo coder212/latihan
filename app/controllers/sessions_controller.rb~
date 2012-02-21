@@ -1,15 +1,9 @@
-require 'spec_helper'
-describe SessionsController do
-render_views
-describe "GET 'new'" do
-it "should be successful" do
-get :new
-response.should be_success
+class SessionsController < ApplicationController
+  def new
+@title = "Sign in"
 end
-it "should have the right title" do
-get :new
-response.should have_selector("title", :content => "Sign in")
+def create
+end
+def destroy
 end
 end
-end
-
