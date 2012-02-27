@@ -1,17 +1,6 @@
 <h1>Sign up</h1>
 <%= form_for(@user) do |f| %>
-<%= render 'shared/error_messages' %>
-<div class="error_explanation" id="error_explanation">
-<h2>5 errors prohibited this user from being saved</h2>
-<p>There were problems with the following fields:</p>
-<ul>
-<li>Name can't be blank</li>
-<li>Email can't be blank</li>
-<li>Email is invalid</li>
-<li>Password can't be blank</li>
-<li>Password is too short (minimum is 6 characters)</li>
-</ul>
-</div>
+<%= render 'shared/error_messages', :object => f.object %>
 <div class="field">
 <%= f.label :name %><br />
 <%= f.text_field :name %>

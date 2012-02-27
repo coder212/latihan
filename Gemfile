@@ -30,7 +30,8 @@ group :development, :test do
  gem 'factory_girl_rails', '1.0'
 #gem 'sqlite3', '1.3.5', :require => 'sqlite3'
 gem 'gravatar_image_tag', '0.1.0'
-
+gem 'faker'
+gem 'will_paginate'
 end
 group :test do
 
