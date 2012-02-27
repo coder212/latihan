@@ -1,231 +1,274 @@
 require 'spec_helper'
 
 describe User do
-  before { @user = FactoryGirl.create(:user) }
-
-  %w[user@foo.com THE_USER@foo.bar.org first.last@foo.jp].each do |email|
-    it { should allow_value(email).for(:email) }
+  
+  before(:each) do
+    @attr = { 
+      :name => "Example User",
+      :email => "user@example.com",
+      :password => "foobar",
+      :password_confirmation => "foobar"
+    }
   end
-  %w[user@foo,com user_at_foo.org example.user@foo.].each do |email|
-    it { should_not allow_value(email).for(:email) }
+  
+  it "should create a new instance given a valid attribute" do
+    User.create!(@attr)
   end
-  it { should validate_presence_of(:email) }
-  it { should validate_uniqueness_of(:email).case_insensitive }
+  
+  it "should require a name" do
+    no_name_user = User.new(@attr.merge(:name => ""))
+    no_name_user.should_not be_valid
+  end
+  
+  it "should require an email address" do
+    no_email_user = User.new(@attr.merge(:email => ""))
+    no_email_user.should_not be_valid
+  end
+  
+  it "should reject names that are too long" do
+    long_name = "a" * 51
+    long_name_user = User.new(@attr.merge(:name => long_name))
+    long_name_user.should_not be_valid
+  end
+  
+  it "should accept valid email addresses" do
+    addresses = %w[user@foo.com THE_USER@foo.bar.org first.last@foo.jp]
+    addresses.each do |address|
+      valid_email_user = User.new(@attr.merge(:email => address))
+      valid_email_user.should be_valid
+    end
+  end
+  
+  it "should reject invalid email addresses" do
+    addresses = %w[user@foo,com user_at_foo.org example.user@foo.]
+    addresses.each do |address|
+      invalid_email_user = User.new(@attr.merge(:email => address))
+      invalid_email_user.should_not be_valid
+    end
+  end
+  
+  it "should reject duplicate email addresses" do
+    User.create!(@attr)
+    user_with_duplicate_email = User.new(@attr)
+    user_with_duplicate_email.should_not be_valid
+  end
+  
+  it "should reject email addresses identical up to case" do
+    upcased_email = @attr[:email].upcase
+    User.create!(@attr.merge(:email => upcased_email))
+    user_with_duplicate_email = User.new(@attr)
+    user_with_duplicate_email.should_not be_valid
+  end
+  
+  describe "passwords" do
 
-  it { should validate_presence_of(:name) }
-  it { should_not allow_value("a" * 51).for(:name) }
+    before(:each) do
+      @user = User.new(@attr)
+    end
 
-  it { should validate_presence_of(:password) }
-  it { should_not allow_value("1234").for(:password) }
-  it { should_not allow_value("a" * 41).for(:password) }
+    it "should have a password attribute" do
+      @user.should respond_to(:password)
+    end
 
-  it { should_not allow_mass_assignment_of(:admin) }
+    it "should have a password confirmation attribute" do
+      @user.should respond_to(:password_confirmation)
+    end
+  end
+  
+  describe "password validations" do
 
+    it "should require a password" do
+      User.new(@attr.merge(:password => "", :password_confirmation => "")).
+        should_not be_valid
+    end
+
+    it "should require a matching password confirmation" do
+      User.new(@attr.merge(:password_confirmation => "invalid")).
+        should_not be_valid
+    end
+    
+    it "should reject short passwords" do
+      short = "a" * 5
+      hash = @attr.merge(:password => short, :password_confirmation => short)
+      User.new(hash).should_not be_valid
+    end
+    
+    it "should reject long passwords" do
+      long = "a" * 41
+      hash = @attr.merge(:password => long, :password_confirmation => long)
+      User.new(hash).should_not be_valid
+    end
+  end
+  
   describe "password encryption" do
+    
+    before(:each) do
+      @user = User.create!(@attr)
+    end
+    
     it "should have an encrypted password attribute" do
       @user.should respond_to(:encrypted_password)
     end
 
-    it "should set the encrypted password" do
+    it "should set the encrypted password attribute" do
       @user.encrypted_password.should_not be_blank
     end
 
+    it "should have a salt" do
+      @user.should respond_to(:salt)
+    end
+
     describe "has_password? method" do
-      it "should be true if the passwords match" do
-        @user.has_password?(@user.password).should be_true
+
+      it "should exist" do
+        @user.should respond_to(:has_password?)
       end
 
-      it "should be false if the passwords don't match" do
+      it "should return true if the passwords match" do
+        @user.has_password?(@attr[:password]).should be_true
+      end
+      
+      it "should return false if the passwords don't match" do
         @user.has_password?("invalid").should be_false
       end
     end
-
+    
     describe "authenticate method" do
+      
+      it "should exist" do
+        User.should respond_to(:authenticate)
+      end
+      
       it "should return nil on email/password mismatch" do
-        wrong_password_user = User.authenticate(@user.email, "wrongpass")
-        wrong_password_user.should be_nil
+        User.authenticate(@attr[:email], "wrongpass").should be_nil
       end
-
+      
       it "should return nil for an email address with no user" do
-        nonexistent_user = User.authenticate("bar@foo.com", @user.password)
-        nonexistent_user.should be_nil
+        User.authenticate("bar@foo.com", @attr[:password]).should be_nil
       end
-
+      
       it "should return the user on email/password match" do
-        matching_user = User.authenticate(@user.email, @user.password)
-        matching_user.should == @user
+        User.authenticate(@attr[:email], @attr[:password]).should == @user
       end
     end
   end
-
-  describe "remember me" do
-    it "should have a remember token" do
-      @user.should respond_to(:remember_token)
-    end
-
-    it "should have a remember_me! method" do
-      @user.should respond_to(:remember_me!)
-    end
-
-    it "should set the remember token" do
-      @user.remember_me!
-      @user.remember_token.should_not be_nil
-    end
-  end
-
+  
   describe "admin attribute" do
+    
+    before(:each) do
+      @user = User.create!(@attr)
+    end
+
     it "should respond to admin" do
       @user.should respond_to(:admin)
     end
-
+    
     it "should not be an admin by default" do
       @user.should_not be_admin
     end
-
+    
     it "should be convertible to an admin" do
       @user.toggle!(:admin)
       @user.should be_admin
     end
   end
 
+  describe "micropost associations" do
+    
+    before(:each) do
+      @user = User.create(@attr)
+      @mp1 = Factory(:micropost, :user => @user, :created_at => 1.day.ago)
+      @mp2 = Factory(:micropost, :user => @user, :created_at => 1.hour.ago)
+    end
+    
+    it "should have a microposts attribute" do
+      @user.should respond_to(:microposts)
+    end
+    
+    it "should have the right microposts in the right order" do
+      @user.microposts.should == [@mp2, @mp1]
+    end
+    
+    it "should destroy associated microposts" do
+      @user.destroy
+      [@mp1, @mp2].each do |micropost|
+        lambda do
+          Micropost.find(micropost)
+        end.should raise_error(ActiveRecord::RecordNotFound)
+      end
+    end
+    
+    describe "status feed" do
+      it "should have a feed" do
+        @user.should respond_to(:feed)
+      end
+      
+      it "should include the user's microposts" do
+        @user.feed.should include(@mp1)
+        @user.feed.should include(@mp2)
+      end
+      
+      it "should not include a different user's microposts" do
+        mp3 = Factory(:micropost,
+                      :user => Factory(:user, :email => Factory.next(:email)))
+        @user.feed.should_not include(mp3)
+      end
+      
+      it "should include the microposts of followed users" do
+        followed = Factory(:user, :email => Factory.next(:email))
+        mp3 = Factory(:micropost, :user => followed)
+        @user.follow!(followed)
+        @user.feed.should include(mp3)
+      end
+    end
+  end
+  
   describe "relationships" do
-    before { @followed = FactoryGirl.create(:user) }
-
+    
+    before(:each) do
+      @user = User.create!(@attr)
+      @followed = Factory(:user)
+    end
+    
     it "should have a relationships method" do
       @user.should respond_to(:relationships)
     end
+    
     it "should have a following method" do
       @user.should respond_to(:following)
     end
-    it "should have a follow! method" do
-      @user.should respond_to(:follow!)
-    end
-
+    
     it "should follow another user" do
       @user.follow!(@followed)
       @user.should be_following(@followed)
     end
-
+    
     it "should include the followed user in the following array" do
       @user.follow!(@followed)
       @user.following.should include(@followed)
     end
-
+    
     it "should have an unfollow! method" do
-      @followed.should respond_to(:unfollow!)
+      @user.should respond_to(:unfollow!)
     end
-
+    
     it "should unfollow a user" do
       @user.follow!(@followed)
       @user.unfollow!(@followed)
       @user.should_not be_following(@followed)
     end
-
+    
     it "should have a reverse_relationships method" do
       @user.should respond_to(:reverse_relationships)
     end
-
+    
     it "should have a followers method" do
       @user.should respond_to(:followers)
     end
-
+    
     it "should include the follower in the followers array" do
       @user.follow!(@followed)
       @followed.followers.should include(@user)
     end
   end
-
-  describe "#active_member_of?" do
-    it "should be true for user's groups" do
-      @group = FactoryGirl.create(:group)
-      @group.add_member!(@user)
-
-      @user.active_member_of?(@group).should be_true
-    end
-
-    it "should not be true for other groups" do
-      @group = FactoryGirl.create(:group)
-
-      @user.active_member_of?(@group).should be_false
-    end
-  end
-
-  it "should return user's name on to_s method" do
-    @user.to_s.should == @user.name
-  end
-
-  describe "#join_supervision" do
-    it "should add user to supervision members" do
-      @supervision = FactoryGirl.create(:supervision)
-      @user.join_supervision(@supervision)
-      @supervision.reload
-      @supervision.members.should include(@user)
-    end
-  end
-
-  describe "#leave_supervision" do
-    it "should remove user's membership in supervision" do
-      @supervision = FactoryGirl.create(:supervision)
-      @user.join_supervision(@supervision)
-      @user.leave_supervision(@supervision)
-      @supervision.reload
-      @supervision.members.should_not include(@user)
-    end
-  end
-
-  it "should associate pending group memberships after create" do
-    membership = FactoryGirl.create(:membership, :email => "john@doe.com")
-    membership.invite!
-    user = FactoryGirl.create(:user, :email => "john@doe.com")
-    user.invited_memberships.should == [membership]
-  end
-
-  it "should not select given user" do
-    User.without(@user).should be_empty
-  end
-
-  describe "#avatar_url" do
-    before do
-      @user.email = "john@doe.com"
-    end
-
-    it "should be generated" do
-      @user.avatar_url.should == "http://www.gravatar.com/avatar/6a6c19fea4a3676970167ce51f39e6ee?rating=PG&size=50"
-    end
-
-    it "should be generated with custom options" do
-      @user.avatar_url(:size => 30).should == "http://www.gravatar.com/avatar/6a6c19fea4a3676970167ce51f39e6ee?rating=PG&size=30"
-    end
-  end
-  describe "authenticate method" do
-it "should return nil on email/password mismatch" do
-wrong_password_user = User.authenticate(@attr[:email], "wrongpass")
-wrong_password_user.should be_nil
-end
-it "should return nil for an email address with no user" do
-nonexistent_user = User.authenticate("bar@foo.com", @attr[:password])
-nonexistent_user.should be_nil
-end
-it "should return the user on email/password match" do
-matching_user = User.authenticate(@attr[:email], @attr[:password])
-matching_user.should == @user
-end
-end
-end
-describe "admin attribute" do
-before(:each) do
-@user = User.create!(@attr)
-end
-it "should respond to admin" do
-@user.should respond_to(:admin)
-end
-it "should not be an admin by default" do
-@user.should_not be_admin
-end
-it "should be convertible to an admin" do
-@user.toggle!(:admin)
-@user.should be_admin
-end
-end
-end
 end

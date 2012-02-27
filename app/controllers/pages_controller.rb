@@ -1,27 +1,22 @@
 class PagesController < ApplicationController
+
   def home
-  @title = "Home"
+    @title = "Home"
+    if signed_in?
+      @micropost = Micropost.new
+      @feed_items = current_user.feed.paginate(:page => params[:page])
+    end
   end
 
   def contact
-  @title = "Contact"
+    @title = "Contact"
   end
-
+  
   def about
-  @title = "About"
+    @title = "About"
   end
-  def signup
-@user = User.new
-@title = "Sign up"
-end
-def create
-@user = User.new(params[:user])
-if @user.save
-flash[:success] = "Welcome to the Sample App!"
-redirect_to @user
-else
-@title = "Sign up"
-render 'new'
-end
-end
+  
+  def help
+    @title = "Help"
+  end
 end
